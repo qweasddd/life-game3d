@@ -7,7 +7,8 @@
   <style>
     body {
       margin: 0; min-height: 100vh; display: grid; place-items: center;
-      background: linear-gradient(180deg, #e0f2ff, #c2e9ff);
+      background: radial-gradient(900px 560px at 15% 0%, #fef9c3 0%, rgba(255,255,255,0) 60%),
+                  linear-gradient(180deg, #e0f2ff, #c2e9ff);
       font-family: system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP",sans-serif;
       color: #0f172a; padding: 16px;
     }
@@ -46,7 +47,7 @@
       <div id="toast" style="margin-top:6px;color:#334155"></div>
     </section>
 
-    <!-- 学年タブ（単一表示：切替式）-->
+    <!-- 学年タブ -->
     <nav class="row" style="justify-content:center">
       <button class="btn" data-year="1">1年生</button>
       <button class="btn" data-year="2">2年生</button>
@@ -62,7 +63,7 @@
       </div>
     </section>
 
-    <!-- 現在の学年表示 & 操作ボタン（共通） -->
+    <!-- 現在の学年表示 & 操作ボタン -->
     <section class="panel">
       <div class="display">
         <div id="gradeLabel">現在：1年生</div>
@@ -89,8 +90,34 @@
   </main>
 
   <script>
-    // ====== ここに /exec を貼る（シートURLではありません） ======
+    // ====== ここに /exec を貼る ======
     const SHEETS_URL = "https://script.google.com/macros/s/AKfycbyzonpmlVacrjm3PtNh6-wUX_9Q0Nhx_wKKkWh2XwvdWfSGZyl1hnx-7O9KaPfn_PwI/exec";
+
+    // ====== サウンド ======
+    let audioCtx;
+    async function ensureAudio(){
+      try{
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        if(audioCtx.state === 'suspended') await audioCtx.resume();
+      }catch(_){}
+    }
+    function beep({freq=880, duration=160, type='square', gainPeak=0.28}={}){
+      try{
+        if(!audioCtx) return;
+        const t0 = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, t0);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.exponentialRampToValueAtTime(gainPeak, t0 + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration/1000);
+        osc.start(t0);
+        osc.stop(t0 + duration/1000 + 0.02);
+      }catch(_){}
+    }
 
     // 金額管理
     const yenFmt = new Intl.NumberFormat('ja-JP');
@@ -118,32 +145,45 @@
       });
     });
 
-    // 1年生 初期金額設定（カンマ/全角対応）
+    // 初期金額設定
     function parseInput(str){
       if(!str) return 0;
       const normalized = str.toString()
-        .replace(/[\u3000\s]/g,'')
+        .replace(/[\\u3000\\s]/g,'')
         .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0)-0xFEE0))
         .replace(/,/g,'');
       const n = Number(normalized);
       return Number.isFinite(n) ? Math.trunc(n) : 0;
     }
-    setBtn.addEventListener('click', ()=>{
+    setBtn.addEventListener('click', async ()=>{
+      await ensureAudio();
       amounts[1] = parseInput(initialInput.value);
+      beep({freq:1000, duration:160, type:'triangle', gainPeak:0.24});
       render();
     });
 
     // 増減
     document.querySelectorAll('[data-delta]').forEach(btn=>{
-      btn.addEventListener('click',()=>{
+      btn.addEventListener('click', async ()=>{
+        await ensureAudio();
         const d = Number(btn.dataset.delta)||0;
         amounts[currentYear] = Math.trunc((amounts[currentYear]||0)+d);
+        if(d >= 0){
+          beep({freq:1200, duration:140, type:'square', gainPeak:0.30});
+        }else{
+          beep({freq:360, duration:220, type:'square', gainPeak:0.34});
+        }
         render();
       });
     });
 
-    // クリア（現在の学年のみ）
-    clearBtn.addEventListener('click',()=>{ amounts[currentYear]=0; render(); });
+    // クリア
+    clearBtn.addEventListener('click', async ()=>{
+      await ensureAudio();
+      amounts[currentYear]=0;
+      beep({freq:520, duration:140, type:'triangle', gainPeak:0.24});
+      render();
+    });
 
     // 画面表示
     function render(){
@@ -156,7 +196,7 @@
     }
     render();
 
-    // ====== 送信（CORSに強いフォームPOST：隠しiframe） ======
+    // 送信処理
     const hiddenFrameName = 'sheet_sink_iframe';
     let hiddenFrame = document.getElementById(hiddenFrameName);
     if(!hiddenFrame){
@@ -188,10 +228,9 @@
       form.acceptCharset = 'UTF-8';
       form.enctype = 'application/x-www-form-urlencoded';
 
-      // team と team_name の両方を送る（どちらでも受け取れるように）
       const entries = Object.entries(payload).concat([
         ['team_name', payload.team],
-        ['_ts', Date.now().toString()] // キャッシュ対策
+        ['_ts', Date.now().toString()]
       ]);
       entries.forEach(([k,v])=>{
         const input = document.createElement('input');
