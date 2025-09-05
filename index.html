@@ -5,44 +5,109 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>3D人生ゲーム</title>
   <style>
+    /* ----------------- ベース ----------------- */
+    :root{
+      /* 年度ごとに上書きするテーマ変数（初期値＝1年生相当） */
+      --accent-bg: #bfdbfe;      /* タイトル帯など */
+      --accent-text: #0f172a;
+      --primary-bg: #0ea5e9;     /* 主要ボタン（送信） */
+      --primary-border: #0284c7;
+      --pos-bg: #e7f9ee;         /* ＋ボタン */
+      --pos-text: #16a34a;
+      --neg-bg: #fdecec;         /* −ボタン */
+      --neg-text: #dc2626;
+      --summary-border: #0ea5e9; /* サマリー枠 */
+    }
+    body.year1{
+      --accent-bg:#bfdbfe; --accent-text:#0f172a;
+      --primary-bg:#0ea5e9; --primary-border:#0284c7;
+      --pos-bg:#e7f9ee; --pos-text:#16a34a;
+      --neg-bg:#fdecec; --neg-text:#dc2626;
+      --summary-border:#0ea5e9;
+    }
+    body.year2{
+      --accent-bg:#fdba74; --accent-text:#78350f;       /* 夕焼けオレンジ */
+      --primary-bg:#fb923c; --primary-border:#f97316;   /* 主要ボタンも暖色に */
+      --pos-bg:#ecfdf5; --pos-text:#0f766e;            /* 緑は少し深め */
+      --neg-bg:#fef2f2; --neg-text:#b91c1c;
+      --summary-border:#fb923c;
+    }
+    body.year3{
+      --accent-bg:#1e3a8a; --accent-text:#f8fafc;       /* 夜の濃紺＋白文字 */
+      --primary-bg:#6366f1; --primary-border:#4f46e5;   /* 主要ボタンは月光紫 */
+      --pos-bg:#eef2ff; --pos-text:#4338ca;
+      --neg-bg:#fce7f3; --neg-text:#be185d;
+      --summary-border:#4f46e5;
+    }
+
     body {
       margin: 0; min-height: 100vh; display: grid; place-items: center;
-      background: radial-gradient(900px 560px at 15% 0%, #fef9c3 0%, rgba(255,255,255,0) 60%),
-                  linear-gradient(180deg, #e0f2ff, #c2e9ff);
       font-family: system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP",sans-serif;
-      color: #0f172a; padding: 16px;
+      color: #0f172a; padding: 16px; transition: background 0.8s ease;
+      background: radial-gradient(900px 560px at 15% 0%, #fef9c3 0%, rgba(255,255,255,0) 60%),
+                  linear-gradient(180deg, #e0f2ff, #c2e9ff); /* 背景は控えめに */
     }
     .app {
       width: min(820px, 100%); background: #fff; border: 1px solid rgba(15,23,42,.08);
-      border-radius: 16px; box-shadow: 0 10px 30px rgba(2,6,23,.12); padding: 16px;
+      border-radius: 16px; box-shadow: 0 10px 30px rgba(2,6,23,.12);
+      padding: 0 16px 16px;
     }
-    h1 { text-align: center; margin: 4px 0 12px; }
+    h1 {
+      text-align: center;
+      margin: 0 -16px 16px;
+      padding: 16px;
+      font-size: 2rem; font-weight: 800;
+      color: var(--accent-text);
+      background: var(--accent-bg);               /* ← タイトル帯の色が学年で変わる */
+      border-radius: 16px 16px 0 0;
+      transition: background 0.6s ease, color 0.6s ease;
+    }
+
     .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    label { color: #475569; }
-    input[type=text] { flex: 1; min-width: 220px; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 10px; }
+    label { color: #475569; font-weight: 600; }
+    input[type=text] {
+      flex: 1; min-width: 240px; padding: 12px 14px;
+      border: 1px solid #cbd5e1; border-radius: 10px; font-size: 1.05rem;
+    }
     .panel { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin: 10px 0; }
     .display { text-align: center; font-variant-numeric: tabular-nums; }
-    .value { font-size: clamp(30px, 7vw, 54px); font-weight: 800; }
+    #gradeLabel { font-size: 1.12rem; font-weight: 700; letter-spacing: .01em; }
+    .value { font-size: clamp(30px, 7vw, 54px); font-weight: 800; letter-spacing: .02em; }
+
     .grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0,1fr)); }
-    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 16px;
-           border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 700; cursor: pointer; }
-    .pos { background: #e7f9ee; color: #16a34a; }
-    .neg { background: #fdecec; color: #dc2626; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 10px;
+      font-weight: 700; cursor: pointer; user-select: none;
+      transition: transform .03s ease, filter .2s ease;
+    }
+    .btn:active { transform: translateY(1px); filter: brightness(0.98); }
+    .grid .btn { font-size: 1.1rem; padding: 14px 18px; }  /* 増減ボタン文字大きめ */
+
+    /* 学年テーマに合わせて色が切替わる */
+    .primary { background: var(--primary-bg); color: #fff; border-color: var(--primary-border); }
+    .pos { background: var(--pos-bg); color: var(--pos-text); }
+    .neg { background: var(--neg-bg); color: var(--neg-text); }
     .clear { background: #eef2f7; }
-    .primary { background: #0ea5e9; color: #fff; border-color: #0284c7; }
-    .sum { display: flex; justify-content: space-between; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; }
+
+    .sum {
+      display: flex; justify-content: space-between; padding: 8px 12px;
+      border: 1px solid var(--summary-border); border-radius: 10px; background: #fff;
+    }
+
+    .hidden { display: none !important; } /* 3年生以外で送信ボタン隠す */
   </style>
 </head>
-<body>
+<body class="year1">
   <main class="app">
     <h1>3D人生ゲーム</h1>
 
-    <!-- チーム名 & 送信ボタン -->
+    <!-- チーム名 & 送信ボタン（3年生のときだけ見える） -->
     <section class="panel">
       <div class="row">
-        <label for="team">チーム名：</label>
+        <label for="team">チーム名を入力！</label>
         <input id="team" type="text" placeholder="例：Aチーム" />
-        <button class="btn primary" id="sendBtn">結果を送信！</button>
+        <button class="btn primary hidden" id="sendBtn" aria-disabled="true" title="3年生のときに押せます">結果を送信！</button>
       </div>
       <div id="toast" style="margin-top:6px;color:#334155"></div>
     </section>
@@ -57,7 +122,7 @@
     <!-- 1年初期設定 -->
     <section class="panel" id="init-panel">
       <div class="row">
-        <label for="initial">1年生の初期金額：</label>
+        <label for="initial">はじめの金額を入力！</label>
         <input id="initial" type="text" inputmode="numeric" placeholder="例：10,000（カンマOK）" />
         <button class="btn" id="setBtn">設定</button>
       </div>
@@ -85,12 +150,12 @@
       <div class="sum"><span>1年生</span><strong id="sum1">0円</strong></div>
       <div class="sum"><span>2年生</span><strong id="sum2">0円</strong></div>
       <div class="sum"><span>3年生</span><strong id="sum3">0円</strong></div>
-      <div class="sum" style="border-color:#0ea5e9"><span>最終合計</span><strong id="total">0円</strong></div>
+      <div class="sum"><span>最終合計</span><strong id="total">0円</strong></div>
     </section>
   </main>
 
   <script>
-    // ====== ここに /exec を貼る ======
+    // ====== あなたの /exec URL ======
     const SHEETS_URL = "https://script.google.com/macros/s/AKfycbyzonpmlVacrjm3PtNh6-wUX_9Q0Nhx_wKKkWh2XwvdWfSGZyl1hnx-7O9KaPfn_PwI/exec";
 
     // ====== サウンド ======
@@ -136,28 +201,52 @@
     const valueEl = document.getElementById('value');
     const clearBtn = document.getElementById('clearBtn');
 
+    // テーマ更新（学年で色・表示切替）
+    function updateTheme(){
+      document.body.classList.remove("year1","year2","year3");
+      document.body.classList.add("year"+currentYear);  // ← CSS変数で色が一括切替
+    }
+    function updateSendButtonVisibility(){
+      const isThird = currentYear === 3;
+      sendBtn.classList.toggle('hidden', !isThird);
+      sendBtn.toggleAttribute('disabled', !isThird);
+      sendBtn.setAttribute('aria-disabled', String(!isThird));
+      if(!isThird){ sendBtn.title = "3年生のときに押せます"; }
+      else{ sendBtn.removeAttribute('title'); }
+    }
+
     // 学年切替
     document.querySelectorAll('[data-year]').forEach(b=>{
       b.addEventListener('click',()=>{
         currentYear = Number(b.dataset.year);
         initPanel.style.display = currentYear === 1 ? 'block' : 'none';
+        updateTheme();
+        updateSendButtonVisibility();
         render();
       });
     });
 
-    // 初期金額設定
-    function parseInput(str){
-      if(!str) return 0;
-      const normalized = str.toString()
-        .replace(/[\\u3000\\s]/g,'')
-        .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0)-0xFEE0))
-        .replace(/,/g,'');
-      const n = Number(normalized);
+    // 入力正規化（全角/カンマ対応）
+    function normalizeNumberString(str){
+      const s = String(str);
+      const half = s.replace(/[０-９－]/g, ch => {
+        const code = ch.charCodeAt(0);
+        if (code === 0xFF0D) return '-';
+        return String.fromCharCode(code - 0xFEE0);
+      });
+      return half.replace(/(?!^-)[^\d]/g, '');
+    }
+    function toInt(str){
+      const nstr = normalizeNumberString(str);
+      if (nstr === '' || nstr === '-' ) return 0;
+      const n = Number(nstr);
       return Number.isFinite(n) ? Math.trunc(n) : 0;
     }
+
+    // 初期金額（1年のみ）
     setBtn.addEventListener('click', async ()=>{
       await ensureAudio();
-      amounts[1] = parseInput(initialInput.value);
+      amounts[1] = toInt(initialInput.value);
       beep({freq:1000, duration:160, type:'triangle', gainPeak:0.24});
       render();
     });
@@ -168,11 +257,8 @@
         await ensureAudio();
         const d = Number(btn.dataset.delta)||0;
         amounts[currentYear] = Math.trunc((amounts[currentYear]||0)+d);
-        if(d >= 0){
-          beep({freq:1200, duration:140, type:'square', gainPeak:0.30});
-        }else{
-          beep({freq:360, duration:220, type:'square', gainPeak:0.34});
-        }
+        if(d >= 0){ beep({freq:1200, duration:140, type:'square', gainPeak:0.30}); }
+        else{ beep({freq:360, duration:220, type:'square', gainPeak:0.34}); }
         render();
       });
     });
@@ -185,7 +271,7 @@
       render();
     });
 
-    // 画面表示
+    // 表示
     function render(){
       gradeLabel.textContent = `現在：${currentYear}年生`;
       valueEl.textContent = toYen(amounts[currentYear]);
@@ -194,9 +280,13 @@
       document.getElementById('sum3').textContent = toYen(amounts[3]);
       document.getElementById('total').textContent = toYen(amounts[1]+amounts[2]+amounts[3]);
     }
+
+    // 初期描画
+    updateTheme();
+    updateSendButtonVisibility();
     render();
 
-    // 送信処理
+    // ====== 送信（CORSに強いフォームPOST：隠しiframe） ======
     const hiddenFrameName = 'sheet_sink_iframe';
     let hiddenFrame = document.getElementById(hiddenFrameName);
     if(!hiddenFrame){
@@ -208,6 +298,8 @@
     }
 
     function sendToSheet(){
+      if(currentYear !== 3){ toast.textContent = "3年生のときに送信できます"; return; }
+
       const team = (teamInput.value||'').trim();
       if(!team){ toast.textContent = 'チーム名を入力してください'; return; }
       if(!SHEETS_URL){ toast.textContent = 'SHEETS_URL が未設定です'; return; }
