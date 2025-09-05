@@ -177,6 +177,17 @@
     const sendBtn = document.getElementById('sendBtn');
     const toast = document.getElementById('toast');
 
+    // フォーム送信用の隠しiframe（CORS回避・ページ遷移なし）
+    const hiddenFrameName = 'sheet_sink_iframe';
+    let hiddenFrame = document.getElementById(hiddenFrameName);
+    if(!hiddenFrame){
+      hiddenFrame = document.createElement('iframe');
+      hiddenFrame.name = hiddenFrameName;
+      hiddenFrame.id = hiddenFrameName;
+      hiddenFrame.style.display = 'none';
+      document.body.appendChild(hiddenFrame);
+    }
+
     // 表示用フォーマッタ（カンマ + 円）
     const yenFmt = new Intl.NumberFormat('ja-JP');
     const toYen = n => `${yenFmt.format(n)}円`;
@@ -237,7 +248,7 @@
       if (delta >= 0) {
         beep({freq:1200, duration:140, type:'square', gainPeak:0.28});
       } else {
-        beep({freq:360, duration:200, type:'square', gainPeak:0.30});
+        beep({freq:360, duration:220, type:'square', gainPeak:0.34});
       }
       render();
     }));
@@ -248,13 +259,14 @@
     // ====== スプレッドシート送信（Google Apps Script Webアプリ） ======
     // 1) Google スプレッドシートで Apps Script を開き、以下のコードを貼付けてデプロイ（手順は本文参照）
     // 2) 下の SHEETS_URL に、デプロイ後の Web アプリ URL を貼り付けてください
-    const SHEETS_URL = "https://script.google.com/macros/s/AKfycbzIngCg4z45up88jZFiFilVb_NS9Ew5KOhseUf8qA1CSACFwTncEqx7DIiTwgksYnvBOQ/exec"; // 例: "https://script.google.com/macros/s/AKfycbx.../exec"
+    const SHEETS_URL = "https://script.google.com/macros/s/AKfycbzIngCg4z45up88jZFiFilVb_NS9Ew5KOhseUf8qA1CSACFwTncEqx7DIiTwgksYnvBOQ/exec"; // ← あなたのWebアプリURL
 
     async function sendToSheet(){
       const team = (teamInput.value || "").trim();
       if(!team){ toast.textContent = "チーム名を入力してください"; return; }
       if(!SHEETS_URL){ toast.textContent = "送信用URLが未設定です（SHEETS_URL を設定してください）"; return; }
 
+      // 現在の値をフォームで送信（application/x-www-form-urlencoded）
       const payload = {
         team,
         year1: amounts[1],
@@ -263,22 +275,39 @@
         total: amounts[1] + amounts[2] + amounts[3]
       };
 
+      // 動的フォームを作成して、隠しiframeへPOST（CORS回避）
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = SHEETS_URL;
+      form.target = hiddenFrameName;
+      form.style.display = 'none';
+      form.acceptCharset = 'UTF-8';
+      form.enctype = 'application/x-www-form-urlencoded';
+      // 送信データ（team は冗長に2つのキーを送信）
+      const entries = Object.entries(payload).concat([
+        ['team_name', payload.team],
+        ['_ts', Date.now().toString()] // キャッシュ対策
+      ]);
+      entries.forEach(([k,v]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = k;
+        input.value = String(v ?? '');
+        form.appendChild(input);
+      });
+      document.body.appendChild(form);
+
       try{
-        const res = await fetch(SHEETS_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          mode: 'cors'
-        });
-        if(!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json().catch(() => ({}));
-        toast.textContent = data.message || "送信しました！";
-        // 成功音
+        form.submit();
+        toast.textContent = "送信しました。スプレッドシートを確認してください";
         await ensureAudio();
         beep({freq:900, duration:120, type:'triangle', gainPeak:0.22});
         beep({freq:1200, duration:120, type:'triangle', gainPeak:0.22});
       }catch(err){
         toast.textContent = "送信に失敗しました: " + err.message;
+      }finally{
+        // 片付け
+        setTimeout(() => form.remove(), 5000);
       }
     }
 
