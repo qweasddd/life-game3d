@@ -1,344 +1,535 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>3D人生ゲーム</title>
-  <style>
-    /* ----------------- ベース ----------------- */
-    :root{
-      /* 年度ごとに上書きするテーマ変数（初期値＝1年生相当） */
-      --accent-bg: #bfdbfe;      /* タイトル帯など */
-      --accent-text: #0f172a;
-      --primary-bg: #0ea5e9;     /* 主要ボタン（送信） */
-      --primary-border: #0284c7;
-      --pos-bg: #e7f9ee;         /* ＋ボタン */
-      --pos-text: #16a34a;
-      --neg-bg: #fdecec;         /* −ボタン */
-      --neg-text: #dc2626;
-      --summary-border: #0ea5e9; /* サマリー枠 */
-    }
-    body.year1{
-      --accent-bg:#bfdbfe; --accent-text:#0f172a;
-      --primary-bg:#0ea5e9; --primary-border:#0284c7;
-      --pos-bg:#e7f9ee; --pos-text:#16a34a;
-      --neg-bg:#fdecec; --neg-text:#dc2626;
-      --summary-border:#0ea5e9;
-    }
-    body.year2{
-      --accent-bg:#fdba74; --accent-text:#78350f;       /* 夕焼けオレンジ */
-      --primary-bg:#fb923c; --primary-border:#f97316;   /* 主要ボタンも暖色に */
-      --pos-bg:#ecfdf5; --pos-text:#0f766e;            /* 緑は少し深め */
-      --neg-bg:#fef2f2; --neg-text:#b91c1c;
-      --summary-border:#fb923c;
-    }
-    body.year3{
-      --accent-bg:#1e3a8a; --accent-text:#f8fafc;       /* 夜の濃紺＋白文字 */
-      --primary-bg:#6366f1; --primary-border:#4f46e5;   /* 主要ボタンは月光紫 */
-      --pos-bg:#eef2ff; --pos-text:#4338ca;
-      --neg-bg:#fce7f3; --neg-text:#be185d;
-      --summary-border:#4f46e5;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>3D人生ゲーム</title>
+<style>
+  /* ================== テーマ変数（学年で切替） ================== */
+  :root{
+    --accent-bg:#bfdbfe; --accent-text:#0f172a;     /* タイトル帯 */
+    --primary-bg:#0ea5e9; --primary-border:#0284c7; /* 主要(送信) */
+    --pos-bg:#e7f9ee; --pos-text:#16a34a;           /* +ボタン */
+    --neg-bg:#fdecec; --neg-text:#dc2626;           /* -ボタン */
+    --summary-border:#0ea5e9;                        /* サマリー枠 */
+    --chip-bg:#e2e8f0; --chip-text:#0f172a;         /* 未選択タブ */
+    --chip-active:#0ea5e9; --chip-active-text:#fff; /* 選択タブ */
+    --ring: rgba(14,165,233,.35);
+    --card-bg:#ffffffcc; --card-blur: blur(4px);
+    --shadow: 0 12px 40px rgba(2,6,23,.12);
+    --border: 1px solid rgba(15,23,42,.08);
+    --radius: 20px;
+  }
+  body.year1{
+    --accent-bg:#bfdbfe; --accent-text:#0f172a;
+    --primary-bg:#0ea5e9; --primary-border:#0284c7;
+    --pos-bg:#e7f9ee; --pos-text:#16a34a;
+    --neg-bg:#fdecec; --neg-text:#dc2626;
+    --summary-border:#0ea5e9;
+    --chip-active:#3b82f6;
+    --ring: rgba(59,130,246,.35);
+  }
+  body.year2{
+    --accent-bg:#fdba74; --accent-text:#78350f;
+    --primary-bg:#fb923c; --primary-border:#f97316;
+    --pos-bg:#ecfdf5; --pos-text:#0f766e;
+    --neg-bg:#fef2f2; --neg-text:#b91c1c;
+    --summary-border:#fb923c;
+    --chip-active:#fb923c;
+    --ring: rgba(251,146,60,.35);
+  }
+  body.year3{
+    --accent-bg:#1e3a8a; --accent-text:#f8fafc;
+    --primary-bg:#6366f1; --primary-border:#4f46e5;
+    --pos-bg:#eef2ff; --pos-text:#4338ca;
+    --neg-bg:#fce7f3; --neg-text:#be185d;
+    --summary-border:#4f46e5;
+    --chip-active:#6366f1;
+    --ring: rgba(99,102,241,.35);
+  }
 
-    body {
-      margin: 0; min-height: 100vh; display: grid; place-items: center;
-      font-family: system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP",sans-serif;
-      color: #0f172a; padding: 16px; transition: background 0.8s ease;
-      background: radial-gradient(900px 560px at 15% 0%, #fef9c3 0%, rgba(255,255,255,0) 60%),
-                  linear-gradient(180deg, #e0f2ff, #c2e9ff); /* 背景は控えめに */
-    }
-    .app {
-      width: min(820px, 100%); background: #fff; border: 1px solid rgba(15,23,42,.08);
-      border-radius: 16px; box-shadow: 0 10px 30px rgba(2,6,23,.12);
-      padding: 0 16px 16px;
-    }
-    h1 {
-      text-align: center;
-      margin: 0 -16px 16px;
-      padding: 16px;
-      font-size: 2rem; font-weight: 800;
-      color: var(--accent-text);
-      background: var(--accent-bg);               /* ← タイトル帯の色が学年で変わる */
-      border-radius: 16px 16px 0 0;
-      transition: background 0.6s ease, color 0.6s ease;
-    }
+  /* ================== ベースレイアウト ================== */
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid; place-items: center;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
+    color: #0f172a;
+    padding: 16px;
+    background:
+      radial-gradient(900px 560px at 15% 0%, #fef9c3 0%, rgba(255,255,255,0) 60%),
+      linear-gradient(180deg, #e0f2ff, #c2e9ff);
+  }
+  .app {
+    width: min(880px, 100%);
+    background: var(--card-bg); backdrop-filter: var(--card-blur);
+    border: var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 0 16px 18px; position: relative; overflow: hidden;
+  }
 
-    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    label { color: #475569; font-weight: 600; }
-    input[type=text] {
-      flex: 1; min-width: 240px; padding: 12px 14px;
-      border: 1px solid #cbd5e1; border-radius: 10px; font-size: 1.05rem;
-    }
-    .panel { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin: 10px 0; }
-    .display { text-align: center; font-variant-numeric: tabular-nums; }
-    #gradeLabel { font-size: 1.12rem; font-weight: 700; letter-spacing: .01em; }
-    .value { font-size: clamp(30px, 7vw, 54px); font-weight: 800; letter-spacing: .02em; }
+  /* ================== ヘッダー（タイトル帯） ================== */
+  h1 {
+    margin: 0 -16px 14px; padding: 18px 16px; text-align: center;
+    font-size: clamp(22px, 4.8vw, 32px); font-weight: 900; letter-spacing: .02em;
+    color: var(--accent-text); background: var(--accent-bg);
+    border-radius: var(--radius) var(--radius) 0 0; position: relative; overflow: hidden;
+  }
+  /* きらっと装飾 */
+  h1::after{
+    content:""; position:absolute; inset:0;
+    background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,.45) 30%, transparent 60%);
+    transform: translateX(-100%); animation: shine 5s linear infinite; pointer-events:none;
+  }
+  @keyframes shine { to { transform: translateX(100%); } }
 
-    .grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0,1fr)); }
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 10px;
-      font-weight: 700; cursor: pointer; user-select: none;
-      transition: transform .03s ease, filter .2s ease;
-    }
-    .btn:active { transform: translateY(1px); filter: brightness(0.98); }
-    .grid .btn { font-size: 1.1rem; padding: 14px 18px; }  /* 増減ボタン文字大きめ */
+  /* ================== 行・パネル ================== */
+  .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  label { color:#334155; font-weight:700; }
+  .panel {
+    background: #f8fafce6; border:1px solid #e2e8f0;
+    border-radius:14px; padding:12px; margin:12px 0;
+  }
 
-    /* 学年テーマに合わせて色が切替わる */
-    .primary { background: var(--primary-bg); color: #fff; border-color: var(--primary-border); }
-    .pos { background: var(--pos-bg); color: var(--pos-text); }
-    .neg { background: var(--neg-bg); color: var(--neg-text); }
-    .clear { background: #eef2f7; }
+  /* ================== 入力・ボタン ================== */
+  input[type=text]{
+    flex:1; min-width: 240px; padding: 12px 14px; font-size: 1.06rem;
+    border:1px solid #cbd5e1; border-radius:12px; outline:none;
+    transition: box-shadow .15s ease, border-color .15s ease, background .2s ease;
+    background:#fff;
+  }
+  input[type=text]:focus{
+    border-color: var(--primary-border); box-shadow: 0 0 0 6px var(--ring);
+  }
 
-    .sum {
-      display: flex; justify-content: space-between; padding: 8px 12px;
-      border: 1px solid var(--summary-border); border-radius: 10px; background: #fff;
-    }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding: 12px 16px; border:1px solid #cbd5e1; border-radius:12px;
+    font-weight:800; cursor:pointer; user-select:none;
+    transition: transform .03s ease, filter .2s ease, box-shadow .15s ease, background .2s ease;
+    box-shadow: 0 1px 0 rgba(2,6,23,.05); touch-action: manipulation; position: relative; overflow: hidden;
+  }
+  .btn:active{ transform: translateY(1px); filter: brightness(.98); }
+  .btn .ripple{ position:absolute; border-radius:50%; transform:scale(0); opacity:.4; animation:ripple .5s ease-out; pointer-events:none; background:#fff; }
+  @keyframes ripple{ to{ transform:scale(10); opacity:0; } }
 
-    .hidden { display: none !important; } /* 3年生以外で送信ボタン隠す */
-  </style>
+  .primary{ background:var(--primary-bg); color:#fff; border-color:var(--primary-border); }
+  .clear{ background:#eef2f7; }
+
+  /* 増減グリッド */
+  .grid{ display:grid; gap:12px; grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .grid .btn{ font-size: 1.2rem; padding: 16px 18px; }
+  .pos{ background:var(--pos-bg); color:var(--pos-text); }
+  .neg{ background:var(--neg-bg); color:var(--neg-text); }
+
+  /* セグメント（学年タブ） */
+  .seg{ display:inline-flex; background:#eef2f7; border:1px solid #e2e8f0; padding:6px; border-radius:999px; gap:6px; }
+  .seg-btn{
+    appearance:none; border:none; background:var(--chip-bg); color:var(--chip-text);
+    padding:10px 16px; border-radius:999px; font-weight:800; cursor:pointer;
+    transition: background .2s ease, transform .03s ease, color .2s ease, box-shadow .15s ease;
+  }
+  .seg-btn.active{ background: var(--chip-active); color: var(--chip-active-text); box-shadow: 0 0 0 6px var(--ring); }
+  .seg-btn:active{ transform: translateY(1px); }
+
+  /* 表示部 */
+  .display{ text-align:center; font-variant-numeric: tabular-nums; }
+  #gradeLabel{ font-size: 1.16rem; font-weight:900; letter-spacing:.01em; }
+  .value{ font-size: clamp(34px, 8vw, 58px); font-weight: 900; letter-spacing:.02em; margin-top: 6px; }
+
+  /* サマリー */
+  .sum{ display:flex; justify-content:space-between; align-items:center;
+        padding: 10px 14px; background:#fff; border:1.5px solid var(--summary-border);
+        border-radius:12px; box-shadow: 0 2px 0 rgba(2,6,23,.04); font-weight:700; }
+  .sum strong{ font-size: 1.12rem; }
+  .sum.total{ border-width:2px; box-shadow: 0 3px 0 rgba(2,6,23,.06); }
+
+  .hidden{ display:none !important; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition:none !important; }
+  }
+
+  /* 紙吹雪Canvasを上に重ねる */
+  #fxCanvas{ position:fixed; inset:0; pointer-events:none; z-index:9999; }
+</style>
 </head>
 <body class="year1">
-  <main class="app">
-    <h1>3D人生ゲーム</h1>
+<canvas id="fxCanvas"></canvas>
 
-    <!-- チーム名 & 送信ボタン（3年生のときだけ見える） -->
-    <section class="panel">
-      <div class="row">
-        <label for="team">チーム名を入力！</label>
-        <input id="team" type="text" placeholder="例：Aチーム" />
-        <button class="btn primary hidden" id="sendBtn" aria-disabled="true" title="3年生のときに押せます">結果を送信！</button>
-      </div>
-      <div id="toast" style="margin-top:6px;color:#334155"></div>
-    </section>
+<main class="app">
+  <h1>3D人生ゲーム</h1>
 
-    <!-- 学年タブ -->
-    <nav class="row" style="justify-content:center">
-      <button class="btn" data-year="1">1年生</button>
-      <button class="btn" data-year="2">2年生</button>
-      <button class="btn" data-year="3">3年生</button>
-    </nav>
+  <!-- 入力＆送信 -->
+  <section class="panel">
+    <div class="row">
+      <label for="team">チーム名を入力！</label>
+      <input id="team" type="text" placeholder="例：Aチーム" />
+      <!-- 3年生のときだけ表示 -->
+      <button class="btn primary hidden" id="sendBtn" aria-disabled="true" title="3年生のときに押せます">結果を送信！</button>
+    </div>
+    <div id="toast" style="margin-top:8px;color:#334155; font-weight:700;"></div>
+  </section>
 
-    <!-- 1年初期設定 -->
-    <section class="panel" id="init-panel">
-      <div class="row">
-        <label for="initial">はじめの金額を入力！</label>
-        <input id="initial" type="text" inputmode="numeric" placeholder="例：10,000（カンマOK）" />
-        <button class="btn" id="setBtn">設定</button>
-      </div>
-    </section>
+  <!-- 学年タブ（セグメント） -->
+  <nav class="row" style="justify-content:center">
+    <div class="seg" role="tablist" aria-label="学年を選択">
+      <button class="seg-btn active" data-year="1" role="tab" aria-selected="true">1年生</button>
+      <button class="seg-btn" data-year="2" role="tab" aria-selected="false">2年生</button>
+      <button class="seg-btn" data-year="3" role="tab" aria-selected="false">3年生</button>
+    </div>
+  </nav>
 
-    <!-- 現在の学年表示 & 操作ボタン -->
-    <section class="panel">
-      <div class="display">
-        <div id="gradeLabel">現在：1年生</div>
-        <div class="value" id="value">0円</div>
-      </div>
-      <div class="grid" style="margin-top:10px">
-        <button class="btn pos" data-delta="1000">＋1,000円</button>
-        <button class="btn neg" data-delta="-1000">−1,000円</button>
-        <button class="btn pos" data-delta="10000">＋10,000円</button>
-        <button class="btn neg" data-delta="-10000">−10,000円</button>
-      </div>
-      <div class="row" style="margin-top:10px;justify-content:center">
-        <button class="btn clear" id="clearBtn">クリア（0円）</button>
-      </div>
-    </section>
+  <!-- 1年：初期金額 -->
+  <section class="panel" id="init-panel">
+    <div class="row">
+      <label for="initial">はじめの金額を入力！</label>
+      <input id="initial" type="text" inputmode="numeric" enterkeyhint="done" placeholder="例：10,000（カンマOK）" />
+      <button class="btn" id="setBtn" type="button">設定</button>
+    </div>
+  </section>
 
-    <!-- サマリー -->
-    <section class="panel">
-      <div class="sum"><span>1年生</span><strong id="sum1">0円</strong></div>
-      <div class="sum"><span>2年生</span><strong id="sum2">0円</strong></div>
-      <div class="sum"><span>3年生</span><strong id="sum3">0円</strong></div>
-      <div class="sum"><span>最終合計</span><strong id="total">0円</strong></div>
-    </section>
-  </main>
+  <!-- 表示＆増減 -->
+  <section class="panel">
+    <div class="display">
+      <div id="gradeLabel">現在：1年生</div>
+      <div class="value" id="value">0円</div>
+    </div>
+    <div class="grid" style="margin-top:12px">
+      <button class="btn pos" data-delta="1000">＋1,000円</button>
+      <button class="btn neg" data-delta="-1000">−1,000円</button>
+      <button class="btn pos" data-delta="10000">＋10,000円</button>
+      <button class="btn neg" data-delta="-10000">−10,000円</button>
+    </div>
+    <div class="row" style="margin-top:12px; justify-content:center">
+      <button class="btn clear" id="clearBtn" type="button">クリア（0円）</button>
+      <button class="btn" id="undoBtn" type="button" title="直前の操作を取り消し">1回戻す ↩︎</button>
+    </div>
+  </section>
 
-  <script>
-    // ====== あなたの /exec URL ======
-    const SHEETS_URL = "https://script.google.com/macros/s/AKfycbyzonpmlVacrjm3PtNh6-wUX_9Q0Nhx_wKKkWh2XwvdWfSGZyl1hnx-7O9KaPfn_PwI/exec";
+  <!-- サマリー -->
+  <section class="panel">
+    <div class="sum"><span>1年生</span><strong id="sum1">0円</strong></div>
+    <div class="sum"><span>2年生</span><strong id="sum2">0円</strong></div>
+    <div class="sum"><span>3年生</span><strong id="sum3">0円</strong></div>
+    <div class="sum total" style="margin-top:8px"><span>最終合計</span><strong id="total">0円</strong></div>
+  </section>
+</main>
 
-    // ====== サウンド ======
-    let audioCtx;
-    async function ensureAudio(){
-      try{
-        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-        if(audioCtx.state === 'suspended') await audioCtx.resume();
-      }catch(_){}
+<script>
+  // ====== /exec URL（あなたのApps Script） ======
+  const SHEETS_URL = "https://script.google.com/macros/s/AKfycbyzonpmlVacrjm3PtNh6-wUX_9Q0Nhx_wKKkWh2XwvdWfSGZyl1hnx-7O9KaPfn_PwI/exec";
+
+  // ====== サウンド（モバイル対応） ======
+  let audioCtx;
+  async function ensureAudio(){
+    try{
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if(audioCtx.state === 'suspended') await audioCtx.resume();
+    }catch(_){}
+  }
+  function beep({freq=880, duration=160, type='square', gainPeak=0.28}={}){
+    try{
+      if(!audioCtx) return;
+      const t0 = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t0);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(gainPeak, t0 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration/1000);
+      osc.start(t0); osc.stop(t0 + duration/1000 + 0.02);
+    }catch(_){}
+  }
+
+  // ====== 紙吹雪（軽量Canvas） ======
+  const fx = (()=> {
+    const cv = document.getElementById('fxCanvas');
+    const ctx = cv.getContext('2d');
+    let W=0,H=0, parts=[], running=false, rafId=null;
+
+    function resize(){ W = cv.width = innerWidth * devicePixelRatio; H = cv.height = innerHeight * devicePixelRatio; }
+    addEventListener('resize', resize); resize();
+
+    function burst(n=120){
+      for(let i=0;i<n;i++){
+        parts.push({
+          x:(Math.random()*W), y:-20, r: (4+Math.random()*8)*devicePixelRatio,
+          vx:(Math.random()-0.5)*2, vy:(1+Math.random()*2), rot:Math.random()*Math.PI, vr:(Math.random()-0.5)*0.3,
+          c: `hsl(${Math.floor(Math.random()*360)},85%,60%)`
+        });
+      }
+      if(!running){ running=true; loop(); }
     }
-    function beep({freq=880, duration=160, type='square', gainPeak=0.28}={}){
-      try{
-        if(!audioCtx) return;
-        const t0 = audioCtx.currentTime;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, t0);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        gain.gain.setValueAtTime(0.0001, t0);
-        gain.gain.exponentialRampToValueAtTime(gainPeak, t0 + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration/1000);
-        osc.start(t0);
-        osc.stop(t0 + duration/1000 + 0.02);
-      }catch(_){}
+    function loop(){
+      ctx.clearRect(0,0,W,H);
+      parts = parts.filter(p=>p.y < H+40);
+      for(const p of parts){
+        p.x += p.vx; p.y += p.vy*3; p.rot += p.vr;
+        ctx.save();
+        ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+        ctx.fillStyle = p.c;
+        ctx.fillRect(-p.r, -p.r*0.4, p.r*2, p.r*0.8);
+        ctx.restore();
+      }
+      if(parts.length){ rafId = requestAnimationFrame(loop); }
+      else{ running=false; cancelAnimationFrame(rafId); }
     }
+    return { burst };
+  })();
 
-    // 金額管理
-    const yenFmt = new Intl.NumberFormat('ja-JP');
-    const toYen = n => `${yenFmt.format(n)}円`;
-    const amounts = {1:0,2:0,3:0};
-    let currentYear = 1;
+  // ====== バイブ & リップル ======
+  function vib(ms=10){ if(navigator.vibrate) navigator.vibrate(ms); }
+  function ripple(e){
+    const btn = e.currentTarget;
+    const r = document.createElement('span');
+    r.className='ripple';
+    const rect = btn.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    r.style.width = r.style.height = size+'px';
+    const x = e.clientX ? (e.clientX-rect.left - size/2) : rect.width/2 - size/2;
+    const y = e.clientY ? (e.clientY-rect.top - size/2) : rect.height/2 - size/2;
+    r.style.left = x+'px'; r.style.top = y+'px';
+    btn.appendChild(r);
+    setTimeout(()=>r.remove(), 500);
+  }
 
-    // 要素
-    const teamInput = document.getElementById('team');
-    const sendBtn = document.getElementById('sendBtn');
-    const toast = document.getElementById('toast');
-    const initPanel = document.getElementById('init-panel');
-    const initialInput = document.getElementById('initial');
-    const setBtn = document.getElementById('setBtn');
-    const gradeLabel = document.getElementById('gradeLabel');
-    const valueEl = document.getElementById('value');
-    const clearBtn = document.getElementById('clearBtn');
+  // ====== 金額管理 ======
+  const yenFmt = new Intl.NumberFormat('ja-JP');
+  const toYen = n => `${yenFmt.format(n)}円`;
+  const amounts = {1:0,2:0,3:0};
+  const undoStack = {1:[],2:[],3:[]}; // 学年ごとの直前操作の差分を記録
+  let currentYear = 1;
 
-    // テーマ更新（学年で色・表示切替）
-    function updateTheme(){
-      document.body.classList.remove("year1","year2","year3");
-      document.body.classList.add("year"+currentYear);  // ← CSS変数で色が一括切替
-    }
-    function updateSendButtonVisibility(){
-      const isThird = currentYear === 3;
-      sendBtn.classList.toggle('hidden', !isThird);
-      sendBtn.toggleAttribute('disabled', !isThird);
-      sendBtn.setAttribute('aria-disabled', String(!isThird));
-      if(!isThird){ sendBtn.title = "3年生のときに押せます"; }
-      else{ sendBtn.removeAttribute('title'); }
-    }
+  // ====== 要素 ======
+  const teamInput = document.getElementById('team');
+  const sendBtn = document.getElementById('sendBtn');
+  const toast = document.getElementById('toast');
+  const initPanel = document.getElementById('init-panel');
+  const initialInput = document.getElementById('initial');
+  const setBtn = document.getElementById('setBtn');
+  const gradeLabel = document.getElementById('gradeLabel');
+  const valueEl = document.getElementById('value');
+  const clearBtn = document.getElementById('clearBtn');
+  const undoBtn = document.getElementById('undoBtn');
 
-    // 学年切替
-    document.querySelectorAll('[data-year]').forEach(b=>{
-      b.addEventListener('click',()=>{
-        currentYear = Number(b.dataset.year);
-        initPanel.style.display = currentYear === 1 ? 'block' : 'none';
-        updateTheme();
-        updateSendButtonVisibility();
-        render();
+  // ====== 学年切替（セグメント） ======
+  const segButtons = Array.from(document.querySelectorAll('.seg-btn'));
+  segButtons.forEach(b=>{
+    b.addEventListener('click',(e)=>{
+      segButtons.forEach(x=>{
+        x.classList.toggle('active', x===b);
+        x.setAttribute('aria-selected', String(x===b));
       });
+      currentYear = Number(b.dataset.year);
+      initPanel.style.display = currentYear === 1 ? 'block' : 'none';
+      updateTheme();
+      updateSendButtonVisibility();
+      render(); vib(); ripple(e);
+      saveState();
+    }, {passive:true});
+  });
+
+  // ====== テーマ更新（CSS変数で色一括切替） ======
+  function updateTheme(){
+    document.body.classList.remove('year1','year2','year3');
+    document.body.classList.add('year'+currentYear);
+  }
+
+  // ====== 送信ボタン（3年のみ表示＆有効） ======
+  function updateSendButtonVisibility(){
+    const isThird = currentYear === 3;
+    sendBtn.classList.toggle('hidden', !isThird);
+    sendBtn.toggleAttribute('disabled', !isThird);
+    sendBtn.setAttribute('aria-disabled', String(!isThird));
+    if(!isThird){ sendBtn.title = "3年生のときに押せます"; }
+    else{ sendBtn.removeAttribute('title'); }
+  }
+
+  // ====== 入力正規化（全角/カンマ対応） ======
+  function normalizeNumberString(str){
+    const s = String(str);
+    const half = s.replace(/[０-９－]/g, ch => {
+      const code = ch.charCodeAt(0);
+      if (code === 0xFF0D) return '-';
+      return String.fromCharCode(code - 0xFEE0);
+    });
+    return half.replace(/(?!^-)[^\d]/g, '');
+  }
+  function toInt(str){
+    const nstr = normalizeNumberString(str);
+    if (nstr === '' || nstr === '-' ) return 0;
+    const n = Number(nstr);
+    return Number.isFinite(n) ? Math.trunc(n) : 0;
+  }
+
+  // ====== 初期金額（Enter/Done/blurでも反映） ======
+  async function applyInitial(){
+    await ensureAudio(); vib();
+    const before = amounts[1];
+    amounts[1] = toInt(initialInput.value);
+    undoStack[1].push(amounts[1] - before); // 差分を記録
+    beep({freq:1000, duration:160, type:'triangle', gainPeak:0.24});
+    render(); saveState();
+  }
+  setBtn.addEventListener('click', (e)=>{ applyInitial(); ripple(e); });
+  initialInput.addEventListener('keydown', async (e)=>{
+    if(e.key === 'Enter'){ e.preventDefault(); await applyInitial(); }
+  });
+  initialInput.addEventListener('change', applyInitial);
+  initialInput.addEventListener('blur', applyInitial);
+
+  // ====== 増減 ======
+  document.querySelectorAll('[data-delta]').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      await ensureAudio(); vib();
+      const d = Number(btn.dataset.delta)||0;
+      amounts[currentYear] = Math.trunc((amounts[currentYear]||0)+d);
+      undoStack[currentYear].push(d); // 増減差分
+      if(d >= 0){ beep({freq:1200, duration:140, type:'square', gainPeak:0.30}); }
+      else{ beep({freq:360, duration:220, type:'square', gainPeak:0.34}); }
+      render(); ripple(e); saveState();
+    });
+  });
+
+  // ====== クリア ======
+  clearBtn.addEventListener('click', async (e)=>{
+    await ensureAudio(); vib();
+    const prev = amounts[currentYear];
+    if(prev !== 0) undoStack[currentYear].push(-prev); // 0にした差分を記録（戻せる）
+    amounts[currentYear]=0;
+    beep({freq:520, duration:140, type:'triangle', gainPeak:0.24});
+    render(); ripple(e); saveState();
+  });
+
+  // ====== 1回戻す（直前の操作だけ取り消す） ======
+  undoBtn.addEventListener('click', async (e)=>{
+    await ensureAudio(); vib();
+    const diff = undoStack[currentYear].pop();
+    if(typeof diff === 'number'){
+      amounts[currentYear] = Math.trunc((amounts[currentYear]||0) - diff);
+      beep({freq:700, duration:140, type:'sine', gainPeak:0.22});
+      render(); ripple(e); saveState();
+      toast.textContent = '直前の操作を取り消しました';
+      setTimeout(()=>toast.textContent='',1200);
+    }else{
+      toast.textContent = '取り消す操作がありません';
+      setTimeout(()=>toast.textContent='',1200);
+    }
+  });
+
+  // ====== 表示 ======
+  function render(){
+    gradeLabel.textContent = `現在：${currentYear}年生`;
+    valueEl.textContent = toYen(amounts[currentYear]);
+    document.getElementById('sum1').textContent = toYen(amounts[1]);
+    document.getElementById('sum2').textContent = toYen(amounts[2]);
+    document.getElementById('sum3').textContent = toYen(amounts[3]);
+    document.getElementById('total').textContent = toYen(amounts[1]+amounts[2]+amounts[3]);
+  }
+
+  // ====== 自動保存（localStorage） ======
+  const KEY = 'jsg-fes-state-v2';
+  function saveState(){
+    try{
+      const state = { team: teamInput.value, amounts, currentYear };
+      localStorage.setItem(KEY, JSON.stringify(state));
+    }catch(_){}
+  }
+  function loadState(){
+    try{
+      const s = JSON.parse(localStorage.getItem(KEY)||'null');
+      if(!s) return;
+      teamInput.value = s.team || '';
+      amounts[1] = Number(s.amounts?.[1]||0);
+      amounts[2] = Number(s.amounts?.[2]||0);
+      amounts[3] = Number(s.amounts?.[3]||0);
+      currentYear = Number(s.currentYear||1);
+      // セグメント反映
+      const target = document.querySelector(`.seg-btn[data-year="${currentYear}"]`);
+      if(target){
+        document.querySelectorAll('.seg-btn').forEach(x=>{
+          x.classList.toggle('active', x===target);
+          x.setAttribute('aria-selected', String(x===target));
+        });
+      }
+      initPanel.style.display = currentYear === 1 ? 'block' : 'none';
+      updateTheme(); updateSendButtonVisibility(); render();
+    }catch(_){}
+  }
+
+  // ====== 初期描画 ======
+  updateTheme(); updateSendButtonVisibility(); render(); loadState();
+
+  // ====== 送信（フォームPOST：隠しiframeでCORS回避） ======
+  const hiddenFrameName = 'sheet_sink_iframe';
+  let hiddenFrame = document.getElementById(hiddenFrameName);
+  if(!hiddenFrame){
+    hiddenFrame = document.createElement('iframe');
+    hiddenFrame.name = hiddenFrameName;
+    hiddenFrame.id = hiddenFrameName;
+    hiddenFrame.style.display = 'none';
+    document.body.appendChild(hiddenFrame);
+  }
+
+  function sendToSheet(){
+    if(currentYear !== 3){ toast.textContent = "3年生のときに送信できます"; return; }
+    const team = (teamInput.value||'').trim();
+    if(!team){ toast.textContent = 'チーム名を入力してください'; return; }
+    if(!SHEETS_URL){ toast.textContent = 'SHEETS_URL が未設定です'; return; }
+
+    const payload = {
+      team,
+      year1: amounts[1],
+      year2: amounts[2],
+      year3: amounts[3],
+      total: amounts[1]+amounts[2]+amounts[3]
+    };
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = SHEETS_URL;
+    form.target = hiddenFrameName;
+    form.style.display = 'none';
+    form.acceptCharset = 'UTF-8';
+    form.enctype = 'application/x-www-form-urlencoded';
+
+    const entries = Object.entries(payload).concat([
+      ['team_name', payload.team],
+      ['_ts', Date.now().toString()] // キャッシュ対策
+    ]);
+    entries.forEach(([k,v])=>{
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = k;
+      input.value = String(v ?? '');
+      form.appendChild(input);
     });
 
-    // 入力正規化（全角/カンマ対応）
-    function normalizeNumberString(str){
-      const s = String(str);
-      const half = s.replace(/[０-９－]/g, ch => {
-        const code = ch.charCodeAt(0);
-        if (code === 0xFF0D) return '-';
-        return String.fromCharCode(code - 0xFEE0);
-      });
-      return half.replace(/(?!^-)[^\d]/g, '');
-    }
-    function toInt(str){
-      const nstr = normalizeNumberString(str);
-      if (nstr === '' || nstr === '-' ) return 0;
-      const n = Number(nstr);
-      return Number.isFinite(n) ? Math.trunc(n) : 0;
-    }
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(()=>form.remove(), 3000);
 
-    // 初期金額（1年のみ）
-    setBtn.addEventListener('click', async ()=>{
-      await ensureAudio();
-      amounts[1] = toInt(initialInput.value);
-      beep({freq:1000, duration:160, type:'triangle', gainPeak:0.24});
-      render();
+    // 成功演出（紙吹雪 & 音）
+    ensureAudio().then(()=>{
+      beep({freq:900, duration:110, type:'triangle', gainPeak:0.26});
+      setTimeout(()=>beep({freq:1200, duration:120, type:'square', gainPeak:0.30}), 120);
+      setTimeout(()=>beep({freq:1500, duration:140, type:'square', gainPeak:0.30}), 260);
     });
+    fx.burst(140); vib(20);
+    toast.textContent = '送信しました。シートを確認してください。';
+    // 保存
+    saveState();
+  }
 
-    // 増減
-    document.querySelectorAll('[data-delta]').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        await ensureAudio();
-        const d = Number(btn.dataset.delta)||0;
-        amounts[currentYear] = Math.trunc((amounts[currentYear]||0)+d);
-        if(d >= 0){ beep({freq:1200, duration:140, type:'square', gainPeak:0.30}); }
-        else{ beep({freq:360, duration:220, type:'square', gainPeak:0.34}); }
-        render();
-      });
-    });
+  sendBtn.addEventListener('click', (e)=>{ sendToSheet(); ripple(e); });
 
-    // クリア
-    clearBtn.addEventListener('click', async ()=>{
-      await ensureAudio();
-      amounts[currentYear]=0;
-      beep({freq:520, duration:140, type:'triangle', gainPeak:0.24});
-      render();
-    });
-
-    // 表示
-    function render(){
-      gradeLabel.textContent = `現在：${currentYear}年生`;
-      valueEl.textContent = toYen(amounts[currentYear]);
-      document.getElementById('sum1').textContent = toYen(amounts[1]);
-      document.getElementById('sum2').textContent = toYen(amounts[2]);
-      document.getElementById('sum3').textContent = toYen(amounts[3]);
-      document.getElementById('total').textContent = toYen(amounts[1]+amounts[2]+amounts[3]);
-    }
-
-    // 初期描画
-    updateTheme();
-    updateSendButtonVisibility();
-    render();
-
-    // ====== 送信（CORSに強いフォームPOST：隠しiframe） ======
-    const hiddenFrameName = 'sheet_sink_iframe';
-    let hiddenFrame = document.getElementById(hiddenFrameName);
-    if(!hiddenFrame){
-      hiddenFrame = document.createElement('iframe');
-      hiddenFrame.name = hiddenFrameName;
-      hiddenFrame.id = hiddenFrameName;
-      hiddenFrame.style.display = 'none';
-      document.body.appendChild(hiddenFrame);
-    }
-
-    function sendToSheet(){
-      if(currentYear !== 3){ toast.textContent = "3年生のときに送信できます"; return; }
-
-      const team = (teamInput.value||'').trim();
-      if(!team){ toast.textContent = 'チーム名を入力してください'; return; }
-      if(!SHEETS_URL){ toast.textContent = 'SHEETS_URL が未設定です'; return; }
-
-      const payload = {
-        team,
-        year1: amounts[1],
-        year2: amounts[2],
-        year3: amounts[3],
-        total: amounts[1]+amounts[2]+amounts[3]
-      };
-
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = SHEETS_URL;
-      form.target = hiddenFrameName;
-      form.style.display = 'none';
-      form.acceptCharset = 'UTF-8';
-      form.enctype = 'application/x-www-form-urlencoded';
-
-      const entries = Object.entries(payload).concat([
-        ['team_name', payload.team],
-        ['_ts', Date.now().toString()]
-      ]);
-      entries.forEach(([k,v])=>{
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = k;
-        input.value = String(v ?? '');
-        form.appendChild(input);
-      });
-
-      document.body.appendChild(form);
-      form.submit();
-      setTimeout(()=>form.remove(), 3000);
-      toast.textContent = '送信しました。シートを確認してください。';
-    }
-
-    sendBtn.addEventListener('click', sendToSheet);
-  </script>
+  // 全ボタンにリップル＆軽バイブ付与
+  document.querySelectorAll('.btn').forEach(b=>{
+    b.addEventListener('click', ripple);
+  });
+</script>
 </body>
 </html>
