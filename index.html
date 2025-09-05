@@ -70,7 +70,7 @@
 
   /* ================== ヘッダー（タイトル帯） ================== */
   h1 {
-    margin: 0 -16px 14px; padding: 18px 16px; text-align: center;
+    margin: 0 -16px 8px; padding: 12px 16px; text-align: center;
     font-size: clamp(22px, 4.8vw, 32px); font-weight: 900; letter-spacing: .02em;
     color: var(--accent-text); background: var(--accent-bg);
     border-radius: var(--radius) var(--radius) 0 0; position: relative; overflow: hidden;
@@ -152,6 +152,21 @@
 
   /* 紙吹雪Canvasを上に重ねる */
   #fxCanvas{ position:fixed; inset:0; pointer-events:none; z-index:9999; }
+
+  /* ========== ★スマホキーボード対策 ========== */
+  /* キーボード出現時（JSで .kb-open を付与）上寄せ＆下余白確保 */
+  body.kb-open{
+    place-items: start;
+    padding-bottom: calc(var(--kb, 0px) + 16px);
+  }
+  /* 入力パネルを見切れにくく：上部に貼り付けやすくする */
+  #init-panel, .panel:first-of-type{
+    position: sticky;
+    top: 8px;
+    z-index: 5;
+    background: var(--card-bg);
+    backdrop-filter: var(--card-blur);
+  }
 </style>
 </head>
 <body class="year1">
@@ -530,6 +545,38 @@
   document.querySelectorAll('.btn').forEach(b=>{
     b.addEventListener('click', ripple);
   });
+
+  /* ========== ★スマホキーボード対策：VisualViewportで高さ検知 & 上寄せ ========== */
+  (function(){
+    const vv = window.visualViewport;
+    function updateKB(){
+      if(!vv){ return; }
+      // 画面の実高と可視領域の差分 = キーボード高さ（概算）
+      const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      document.documentElement.style.setProperty('--kb', kb + 'px');
+      document.body.classList.toggle('kb-open', kb > 0);
+    }
+    if(vv){
+      vv.addEventListener('resize', updateKB);
+      vv.addEventListener('scroll', updateKB);
+      window.addEventListener('resize', updateKB);
+      updateKB();
+    }
+  })();
+
+  /* ========== ★フォーカス時に必ず見える位置へスクロール ========== */
+  function scrollFieldIntoView(el){
+    // iOS Safari で安定するよう、キーボード展開後に少し待つ
+    setTimeout(()=>{
+      try{
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }catch(_){
+        el.scrollIntoView();
+      }
+    }, 150);
+  }
+  teamInput.addEventListener('focus', ()=> scrollFieldIntoView(teamInput));
+  initialInput.addEventListener('focus', ()=> scrollFieldIntoView(initialInput));
 </script>
 </body>
 </html>
