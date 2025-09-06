@@ -146,7 +146,7 @@
   .hidden{ display:none !important; }
 
   @media (prefers-reduced-motion: reduce){
-    *{ animation: none !important; transition:none !important; }
+    *{ animation: none !重要; transition:none !重要; }
   }
 
   /* 紙吹雪Canvasを上に重ねる */
@@ -164,6 +164,13 @@
     background: var(--card-bg);
     backdrop-filter: var(--card-blur);
   }
+
+  /* ========== 追加: 年1セットアップUI ========== */
+  .toggle-on{ box-shadow: 0 0 0 6px var(--ring); filter: brightness(0.98); }
+  .club-wrap{ display:flex; gap:8px; flex-wrap:wrap; }
+  .club-btn.active{ background:var(--chip-active); color:#fff; box-shadow:0 0 0 6px var(--ring); }
+  .calc-line{ font-weight:800; color:#0f172a; }
+  .muted{ color:#475569; font-weight:700; }
 </style>
 </head>
 <body class="year1">
@@ -192,12 +199,26 @@
     </div>
   </nav>
 
-  <!-- 1年：初期金額 -->
+  <!-- 1年：初期金額（入力も残しつつ、ボタンで調整） -->
   <section class="panel" id="init-panel">
     <div class="row">
-      <label for="initial">はじめの金額を入力！</label>
-      <input id="initial" type="text" inputmode="numeric" enterkeyhint="done" placeholder="例：10,000（カンマOK）" />
+      <label for="initial">初期費（デフォルト 30,000円）</label>
+      <input id="initial" type="text" inputmode="numeric" enterkeyhint="done" placeholder="例：30,000（カンマOK）" />
       <button class="btn" id="setBtn" type="button">設定</button>
+    </div>
+    <div class="row" style="gap:8px; margin-top:8px">
+      <button class="btn" id="gomaBtn" type="button" title="押すと−10,000円">ごますり券（−10,000円）</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="muted">部活を選ぶ：</div>
+      <div class="club-wrap" role="group" aria-label="部活選択">
+        <button class="btn club-btn" data-club="sports"  type="button">運動部（−15,000）</button>
+        <button class="btn club-btn" data-club="culture" type="button">文化部（−10,000）</button>
+        <button class="btn club-btn active" data-club="home"    type="button">帰宅部（−0）</button>
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="calc-line" id="calcText">30,000 − 0 − 0 = 30,000円</div>
     </div>
   </section>
 
@@ -313,8 +334,13 @@
   const yenFmt = new Intl.NumberFormat('ja-JP');
   const toYen = n => `${yenFmt.format(n)}円`;
   const amounts = {1:0,2:0,3:0};
-  const undoStack = {1:[],2:[],3:[]}; // 将来の拡張用（未使用）
   let currentYear = 1;
+
+  // 年1セットアップ状態
+  let goma = false; // ごますり券
+  let club = 'home'; // 'sports' | 'culture' | 'home'
+
+  const CLUB_COST = { sports:15000, culture:10000, home:0 };
 
   // ====== 要素 ======
   const teamInput = document.getElementById('team');
@@ -327,6 +353,10 @@
   const valueEl = document.getElementById('value');
   const clearBtn = document.getElementById('clearBtn');
   const resetAllBtn = document.getElementById('resetAllBtn');
+
+  const gomaBtn = document.getElementById('gomaBtn');
+  const clubBtns = Array.from(document.querySelectorAll('.club-btn'));
+  const calcText = document.getElementById('calcText');
 
   // ====== 学年切替（セグメント） ======
   const segButtons = Array.from(document.querySelectorAll('.seg-btn'));
@@ -378,14 +408,22 @@
     return Number.isFinite(n) ? Math.trunc(n) : 0;
   }
 
-  // ====== 初期金額（Enter/Done/blurでも反映・音/バイブ付き） ======
+  // ====== 年1スタート金額の再計算 ======
+  function recomputeStart(){
+    const base = toInt(initialInput.value) || 0;
+    const gomaCost = goma ? 10000 : 0;
+    const clubCost = CLUB_COST[club] || 0;
+    const start = Math.max(0, base - gomaCost - clubCost);
+    amounts[1] = start;
+    calcText.textContent = `${toYen(base).replace('円','')} − ${toYen(gomaCost).replace('円','')} − ${toYen(clubCost).replace('円','')} = ${toYen(start)}`;
+    render(); saveState();
+  }
+
+  // ====== 初期金額（Enter/Done/ボタン/blurでも反映・音/バイブ付き） ======
   async function applyInitial(){
     await ensureAudio(); vib();
-    const before = amounts[1];
-    amounts[1] = toInt(initialInput.value);
-    undoStack[1].push(amounts[1] - before); // 差分記録（未使用だが将来用）
     beep({freq:1000, duration:160, type:'triangle', gainPeak:0.24});
-    render(); saveState();
+    recomputeStart();
   }
   setBtn.addEventListener('click', (e)=>{ applyInitial(); ripple(e); });
   initialInput.addEventListener('keydown', async (e)=>{
@@ -393,6 +431,27 @@
   });
   initialInput.addEventListener('change', applyInitial);
   initialInput.addEventListener('blur', applyInitial);
+
+  // ====== ごますり券トグル ======
+  gomaBtn.addEventListener('click', async (e)=>{
+    await ensureAudio(); vib();
+    goma = !goma;
+    gomaBtn.classList.toggle('toggle-on', goma);
+    beep({freq: goma ? 900 : 520, duration:140, type:'square', gainPeak:0.26});
+    ripple(e); recomputeStart();
+  });
+
+  // ====== 部活選択（排他） ======
+  clubBtns.forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      await ensureAudio(); vib();
+      clubBtns.forEach(x=>x.classList.remove('active'));
+      btn.classList.add('active');
+      club = btn.dataset.club;
+      beep({freq: 800, duration:130, type:'sine', gainPeak:0.22});
+      ripple(e); recomputeStart();
+    });
+  });
 
   // ====== 増減 ======
   document.querySelectorAll('[data-delta]').forEach(btn=>{
@@ -409,9 +468,8 @@
   // ====== クリア ======
   clearBtn.addEventListener('click', async (e)=>{
     await ensureAudio(); vib();
-    const prev = amounts[currentYear];
     amounts[currentYear]=0;
-    if(prev !== 0){ beep({freq:520, duration:140, type:'triangle', gainPeak:0.24}); }
+    beep({freq:520, duration:140, type:'triangle', gainPeak:0.24});
     render(); ripple(e); saveState();
   });
 
@@ -429,20 +487,31 @@
   const KEY = 'jsg-fes-state-v2';
   function saveState(){
     try{
-      const state = { team: teamInput.value, amounts, currentYear };
+      const state = { team: teamInput.value, amounts, currentYear, goma, club, initial: toInt(initialInput.value)||0 };
       localStorage.setItem(KEY, JSON.stringify(state));
     }catch(_){}
   }
   function loadState(){
     try{
       const s = JSON.parse(localStorage.getItem(KEY)||'null');
-      if(!s) return;
+      // デフォルトで初期費 30,000 をセット
+      initialInput.value = '30000';
+      if(!s){
+        goma=false; club='home'; recomputeStart(); return;
+      }
       teamInput.value = s.team || '';
       amounts[1] = Number(s.amounts?.[1]||0);
       amounts[2] = Number(s.amounts?.[2]||0);
       amounts[3] = Number(s.amounts?.[3]||0);
       currentYear = Number(s.currentYear||1);
-      // セグメント反映
+      goma = !!s.goma;
+      club = s.club || 'home';
+      if(s.initial){ initialInput.value = String(s.initial); }
+      // UI反映
+      gomaBtn.classList.toggle('toggle-on', goma);
+      clubBtns.forEach(x=>{
+        x.classList.toggle('active', x.dataset.club === club);
+      });
       const target = document.querySelector(`.seg-btn[data-year="${currentYear}"]`);
       if(target){
         document.querySelectorAll('.seg-btn').forEach(x=>{
@@ -451,7 +520,8 @@
         });
       }
       initPanel.style.display = currentYear === 1 ? 'block' : 'none';
-      updateTheme(); updateSendButtonVisibility(); render();
+      updateTheme(); updateSendButtonVisibility();
+      recomputeStart(); // amounts[1] や計算式を整合
     }catch(_){}
   }
 
@@ -481,7 +551,10 @@
       year2: amounts[2],
       year3: amounts[3],
       total: amounts[1]+amounts[2]+amounts[3],
-      _ts: Date.now().toString() // キャッシュ対策
+      goma: goma ? 1 : 0,
+      club,
+      initial: toInt(initialInput.value)||0,
+      _ts: Date.now().toString()
     };
 
     const form = document.createElement('form');
@@ -554,9 +627,14 @@
     await ensureAudio(); vib();
     amounts[1]=amounts[2]=amounts[3]=0;
     teamInput.value='';
+    goma=false; club='home'; initialInput.value='30000';
     localStorage.removeItem(KEY);
+    // UIリセット
+    gomaBtn.classList.remove('toggle-on');
+    clubBtns.forEach(x=>x.classList.toggle('active', x.dataset.club==='home'));
+    recomputeStart(); // render と save も実行される
     beep({freq:520, duration:140, type:'triangle', gainPeak:0.24});
-    render(); ripple(e);
+    ripple(e);
     toast.textContent = '全学年をリセットしました';
     setTimeout(()=>toast.textContent='',1200);
   });
